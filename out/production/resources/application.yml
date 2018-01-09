@@ -1,0 +1,10 @@
+logging:
+  level:
+    root: error
+    com:
+      example :
+        statemachine :
+          demo : debug
+    org:
+      springframework:
+        web: info
