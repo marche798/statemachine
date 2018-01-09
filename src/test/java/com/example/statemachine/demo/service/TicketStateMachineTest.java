@@ -33,5 +33,11 @@ public class TicketStateMachineTest {
     @Transactional
     public void test1() {
         StateMachine<TicketStatus, TicketEvent> stateMachine = stateMachineFactory.getStateMachine();
+        //logger.debug("@@ {}",stateMachine.getTransitions().iterator().next());
+        logger.debug("----------------------------------");
+        stateMachine.sendEvent(TicketEvent.NEW);
+        logger.debug("----------------------------------");
+        stateMachine.sendEvent(TicketEvent.ASSIGN);
+        logger.debug("----------------------------------");
     }
 }
