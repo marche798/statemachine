@@ -3,6 +3,7 @@ package com.example.statemachine.demo.domain.entity;
 public enum TicketStatus {
 
     CREATED("Created", "Created"),
+    CREATED_CHOICE("Created Choice", "Created Choice"),
     NEW("New", "New"),
     OPEN("Open", "Open"),
     PENDING("Pending", "Awaiting your reply"),

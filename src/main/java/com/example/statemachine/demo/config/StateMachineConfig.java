@@ -4,6 +4,8 @@ import com.example.statemachine.demo.domain.entity.TicketEvent;
 import com.example.statemachine.demo.domain.entity.TicketStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
@@ -13,6 +15,10 @@ import org.springframework.statemachine.config.builders.StateMachineTransitionCo
 
 @Configuration
 public class StateMachineConfig {
+    @Bean
+    public StateMachineEventListener stateMachineLogListener() {
+        return new StateMachineEventListener();
+    }
 
     @Configuration
     @EnableStateMachineFactory(name = "ticketStateMachineFactory")
@@ -20,12 +26,16 @@ public class StateMachineConfig {
 
         private static final Logger logger = LoggerFactory.getLogger(TicketConfig.class);
 
+        @Autowired
+        private StateMachineEventListener stateMachineLogListener;
+
         @Override
         public void configure(StateMachineConfigurationConfigurer<TicketStatus, TicketEvent> config)
                 throws Exception {
             config
                     .withConfiguration()
-                    .autoStartup(true);
+                    .autoStartup(true)
+                    .listener(stateMachineLogListener);
         }
 
         @Override
@@ -33,6 +43,7 @@ public class StateMachineConfig {
             states
                     .withStates()
                     .initial(TicketStatus.CREATED)
+                    .choice(TicketStatus.CREATED_CHOICE)
                     .stateEntry(TicketStatus.CREATED, c -> {
                         logger.debug("## CREATED State  Entry!");
                     })
@@ -43,6 +54,7 @@ public class StateMachineConfig {
                         logger.debug("## CREATED State  Exit!");
                     })
                     .stateEntry(TicketStatus.NEW, c -> {
+                        logger.debug("!!!! {}", c);
                         logger.debug("## NEW State  Entry!");
                     })
                     .stateDo(TicketStatus.NEW, c -> {
@@ -52,6 +64,7 @@ public class StateMachineConfig {
                         logger.debug("## NEW State  Exit!");
                     })
                     .stateEntry(TicketStatus.OPEN, c -> {
+                        logger.debug("!!!! {}", c);
                         logger.debug("## OPEN State  Entry!");
                     })
                     .stateDo(TicketStatus.OPEN, c -> {
@@ -105,16 +118,19 @@ public class StateMachineConfig {
         public void configure(StateMachineTransitionConfigurer<TicketStatus, TicketEvent> transitions) throws Exception {
             transitions
                     .withExternal()
-                    .source(TicketStatus.CREATED).target(TicketStatus.NEW).event(TicketEvent.NEW)       //고객이 티켓 등록
+                    .source(TicketStatus.CREATED).target(TicketStatus.CREATED_CHOICE).event(TicketEvent.NEW)       //고객이 티켓 등록
                     .action(c -> {
                         logger.debug("!! NEW Event Called!");
                     })
                     .and()
-                    .withExternal()
-                    .source(TicketStatus.CREATED).target(TicketStatus.OPEN).event(TicketEvent.REGIST)   //관리자가 티켓 등록
-                    .action(c -> {
-                        logger.debug("!! REGIST Event Called!");
+                    .withChoice()
+                    .source(TicketStatus.CREATED_CHOICE)
+                    .first(TicketStatus.OPEN, c -> {
+                        //관리자 티켓 등록시 true 반환
+                        logger.debug("%% {}", c.getMessageHeader("isAgent"));
+                        return (Boolean)c.getMessageHeader("isAgent");
                     })
+                    .last(TicketStatus.NEW)
                     .and()
                     .withExternal()
                     .source(TicketStatus.NEW).target(TicketStatus.OPEN).event(TicketEvent.ASSIGN)       //담당자 설정

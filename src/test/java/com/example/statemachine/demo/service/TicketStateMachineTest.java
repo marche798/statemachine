@@ -1,6 +1,7 @@
 package com.example.statemachine.demo.service;
 
 import com.example.statemachine.demo.DemoApplication;
+import com.example.statemachine.demo.domain.entity.Ticket;
 import com.example.statemachine.demo.domain.entity.TicketEvent;
 import com.example.statemachine.demo.domain.entity.TicketStatus;
 import org.junit.Test;
@@ -29,15 +30,35 @@ public class TicketStateMachineTest {
     @Qualifier("ticketStateMachineFactory")
     StateMachineFactory<TicketStatus, TicketEvent> stateMachineFactory;
 
+    @Autowired
+    TicketProcessService ticketProcessService;
+
+    @Autowired
+    TicketService ticketService;
+
     @Test
     @Transactional
     public void test1() {
         StateMachine<TicketStatus, TicketEvent> stateMachine = stateMachineFactory.getStateMachine();
         //logger.debug("@@ {}",stateMachine.getTransitions().iterator().next());
-        logger.debug("----------------------------------");
-        stateMachine.sendEvent(TicketEvent.NEW);
-        logger.debug("----------------------------------");
+        logger.debug("-----------------{}-----------------", stateMachine.getState().getId());
+
+        stateMachine.sendEvent(MessageBuilder.withPayload(TicketEvent.NEW).setHeader("isAgent", false).build());
+        //logger.debug("!!! {}", stateMachine.getTransitions().size());
+        logger.debug("-----------------{}-----------------", stateMachine.getState().getId());
         stateMachine.sendEvent(TicketEvent.ASSIGN);
-        logger.debug("----------------------------------");
+        logger.debug("-----------------{}-----------------", stateMachine.getState().getId());
+    }
+
+    @Test
+    public void test2() {
+        Ticket ticket = ticketService.getTicket(1l, TicketStatus.NEW);
+
+        StateMachine<TicketStatus, TicketEvent> stateMachine = ticketProcessService.getStateMachine(ticket);
+
+        logger.debug("stateMachine : {}", stateMachine);
+        //stateMachine.sendEvent(MessageBuilder.withPayload(TicketEvent.NEW).setHeader("isAgent", true).build());
+        stateMachine.sendEvent(TicketEvent.ASSIGN);
+        logger.debug("stateMachine : {}", stateMachine.getState());
     }
 }
